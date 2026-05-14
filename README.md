@@ -81,13 +81,13 @@ To enable the RAG feature, run the following SQL in your Supabase Editor:
 create table cv_chunks (
   id bigserial primary key,
   content text,
-  embedding vector(384),
+  embedding vector(768), -- Gemini text-embedding-004 dimensions
   metadata jsonb
 );
 
 -- Create the similarity search function
 create or replace function match_cv_chunks (
-  query_embedding vector(384),
+  query_embedding vector(768),
   match_threshold float,
   match_count int
 )

@@ -1,12 +1,11 @@
 import os
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from google import genai
-from sentence_transformers import SentenceTransformer, util
 from supabase import Client, create_client
 
 app = FastAPI()
@@ -17,11 +16,8 @@ THREAT_CRITICAL = 85
 SIMILARITY_HIGH = 0.7
 SIMILARITY_LOW = 0.3
 GEMINI_MODEL = 'gemini-1.5-flash'
+EMBED_MODEL = 'text-embedding-004'
 TARGET_WORD = 'ocean'
-
-# Lazy-loaded globals
-_model: SentenceTransformer | None = None
-_target_emb: Any = None
 
 # Init Gemini (Requires GOOGLE_API_KEY in .env)
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
@@ -37,23 +33,6 @@ templates = Jinja2Templates(directory='templates')
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
-
-
-def get_model() -> SentenceTransformer:
-    """Lazy-load the SentenceTransformer model."""
-    global _model  # noqa: PLW0603
-    if _model is None:
-        _model = SentenceTransformer('all-MiniLM-L6-v2')
-    return _model
-
-
-def get_target_emb() -> Any:
-    """Lazy-load the target word embedding."""
-    global _target_emb  # noqa: PLW0603
-    if _target_emb is None:
-        m = get_model()
-        _target_emb = m.encode(TARGET_WORD)
-    return _target_emb
 
 
 @app.get('/', response_class=HTMLResponse)
@@ -126,9 +105,12 @@ async def ask_cv(_request: Request, question: Annotated[str, Form()]) -> str:
     if not supabase or not ai_client:
         return "<div class='p-4 bg-red-500/20 text-red-400 rounded-xl'>Supabase or Gemini not configured.</div>"
 
-    # 1. Embed the question (Lazy Loading)
-    m = get_model()
-    query_vector = m.encode(question).tolist()
+    # 1. Embed the question via Gemini API (No local RAM used!)
+    try:
+        embed_response = ai_client.models.embed_content(model=EMBED_MODEL, contents=question)
+        query_vector = embed_response.embeddings[0].values
+    except Exception as e:
+        return f"<div class='p-4 bg-red-500/20 text-red-400 rounded-xl'>Embedding Error: {e!s}</div>"
 
     # 2. Query Supabase for context
     try:
@@ -157,10 +139,20 @@ async def ask_cv(_request: Request, question: Annotated[str, Form()]) -> str:
 
 @app.post('/api/semantic', response_class=HTMLResponse)
 async def check_semantic(_request: Request, guess: Annotated[str, Form()]) -> str:
-    m = get_model()
-    target_emb = get_target_emb()
-    guess_emb = m.encode(guess)
-    score = util.cos_sim(target_emb, guess_emb).item()
+    if not ai_client:
+        return "<p class='text-red-400'>Gemini not configured.</p>"
+
+    # 1. Get embeddings via API
+    try:
+        # Get target and guess embeddings in one call or separate
+        res = ai_client.models.embed_content(model=EMBED_MODEL, contents=[TARGET_WORD, guess])
+        target_emb = res.embeddings[0].values
+        guess_emb = res.embeddings[1].values
+    except Exception as e:
+        return f"<p class='text-red-400'>Error: {e!s}</p>"
+
+    # 2. Calculate Similarity (Dot Product as vectors are normalized)
+    score = sum(a * b for a, b in zip(target_emb, guess_emb, strict=False))
 
     # Format score and return HTML progress bar or text
     color = 'bg-blue-500'
