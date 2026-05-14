@@ -1,0 +1,24 @@
+# Alzbeta Strompova - Senior AI & Web Developer
+
+## Summary
+Passionate software engineer specializing in AI-driven web applications, high-performance backends, and modern frontend experiences. Expert in Python (FastAPI, PyTorch), Javascript (React, Next.js), and Vector Databases.
+
+## Technical Skills
+- **Languages**: Python, TypeScript, JavaScript, SQL
+- **Frameworks**: FastAPI, Starlette, React, Tailwind CSS
+- **AI/ML**: Sentence Transformers, LangChain, OpenAI API, Google Gemini API, PyTorch
+- **Data**: PostgreSQL, Supabase, Redis, ChromaDB
+- **Tools**: UV, Docker, Git, CI/CD
+
+## Experience
+### Senior Developer | AI Innovations (2022 - Present)
+- Architected a RAG-based documentation system reducing support tickets by 40%.
+- Led the migration to a high-performance FastAPI backend with UV package management.
+- Implemented real-time semantic search features for enterprise clients.
+
+### Web Developer | Creative Solutions (2020 - 2022)
+- Built interactive dashboards for data visualization using React and D3.js.
+- Optimized database queries resulting in a 50% improvement in page load speeds.
+
+## Education
+- B.S. in Computer Science | Global Tech University

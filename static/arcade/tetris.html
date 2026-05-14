@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .game-placeholder { text-align: center; border: 2px dashed #333; padding: 40px; border-radius: 20px; }
+    </style>
+</head>
+<body>
+    <div class="game-placeholder">
+        <h2>Tetris AI Placeholder</h2>
+        <p>Game logic goes here.</p>
+        <button onclick="saveScore()">Simulate Game Over (1000 pts)</button>
+    </div>
+
+    <script>
+        function saveScore() {
+            const formData = new URLSearchParams();
+            formData.append('game', 'tetris');
+            formData.append('score', 1000);
+            formData.append('player', 'Guest User');
+
+            fetch('/api/scores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            }).then(r => alert('Score Saved!'));
+        }
+    </script>
+</body>
+</html>

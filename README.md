@@ -1,93 +1,118 @@
-# web
+# 🚀 AI Portfolio: A Premium Experience
 
+A state-of-the-art developer portfolio showcasing the intersection of **Generative AI**, **Semantic Search**, and **Modern Web Architecture**. This project isn't just a static resume; it's a living demonstration of RAG (Retrieval-Augmented Generation), LLM guardrails, and real-time interactive experiences.
 
+![AI Portfolio Preview](https://via.placeholder.com/1200x600?text=Premium+AI+Portfolio+Interface)
 
-## Getting started
+## ✨ Key Features
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+### 🧠 The Digital Brain (RAG)
+Interactive Q&A powered by **Google Gemini** and **Supabase Vector Storage**. The system uses `sentence-transformers` to embed my CV into a vector space, allowing for context-aware answers about my professional experience.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### 🛡️ Jailbreak Challenge & Security Console
+A gamified demonstration of LLM safety.
+- **The Challenge**: Try to trick the "AI Vault" into revealing secrets.
+- **Security Console**: A real-time monitoring dashboard using **HTMX Out-of-Band (OOB) swaps** to visualize detected prompt injections and threat levels.
 
-## Add your files
+### 🔍 Semantic "Hot or Cold"
+A demonstration of vector embeddings. Guess secret words based on their *meaning* rather than their spelling. High similarity scores are visualized with smooth, dynamic progress bars.
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+### 🕹️ AI Arcade
+Classic games like **Snake AI** and **Tetris** with a modern twist.
+- **Integrated Leaderboards**: Scores are automatically synced to Supabase.
+- **Server-side High Scores**: Real-time competition tracking.
 
+---
+
+## 🛠️ Tech Stack
+
+- **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.14+)
+- **Frontend**: [HTMX](https://htmx.org/) (High-power interactivity without JS complexity)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with Custom Glassmorphism
+- **Database**: [Supabase](https://supabase.com/) (PostgreSQL + Vector)
+- **AI Models**: 
+  - **LLM**: Google Gemini 1.5 Flash
+  - **Embeddings**: `all-MiniLM-L6-v2` (Sentence-Transformers)
+- **Package Manager**: [uv](https://github.com/astral-sh/uv)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone & Install
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd web
+
+# Install dependencies using uv
+uv sync
 ```
-cd existing_repo
-git remote add origin https://gitlab.seznam.net/alzbeta.strompova/web.git
-git branch -M main
-git push -uf origin main
+
+### 2. Environment Configuration
+Create a `.env` file in the root directory:
+```env
+GOOGLE_API_KEY=your_gemini_api_key
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
 ```
 
-## Integrate with your tools
+### 3. Initialize the Vector Database
+Populate the "Brain" with your CV:
+1. Edit `cv.txt` with your details.
+2. Run the embedding script:
+```bash
+uv run python embed_cv.py
+```
 
-* [Set up project integrations](https://gitlab.seznam.net/alzbeta.strompova/web/-/settings/integrations)
+### 4. Launch the Experience
+```bash
+uv run uvicorn main:app --reload
+```
+Visit `http://127.0.0.1:8000` to see your portfolio in action!
 
-## Collaborate with your team
+---
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## 📜 Supabase SQL Setup
+To enable the RAG feature, run the following SQL in your Supabase Editor:
 
-## Test and Deploy
+```sql
+-- Create a table for CV chunks
+create table cv_chunks (
+  id bigserial primary key,
+  content text,
+  embedding vector(384),
+  metadata jsonb
+);
 
-Use the built-in continuous integration in GitLab.
+-- Create the similarity search function
+create or replace function match_cv_chunks (
+  query_embedding vector(384),
+  match_threshold float,
+  match_count int
+)
+returns table (
+  id bigint,
+  content text,
+  similarity float
+)
+language plpgsql
+as $$
+begin
+  return query
+  select
+    cv_chunks.id,
+    cv_chunks.content,
+    1 - (cv_chunks.embedding <=> query_embedding) as similarity
+  from cv_chunks
+  where 1 - (cv_chunks.embedding <=> query_embedding) > match_threshold
+  order by similarity desc
+  limit match_count;
+end;
+$$;
+```
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+---
 
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## 🛡️ License
+MIT © 2024 Alzbeta Strompova
