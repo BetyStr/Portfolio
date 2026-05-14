@@ -1,5 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
+<!-- Cold Start Loading Overlay -->
+<div id="loader-overlay" class="fixed inset-0 z-[100] bg-[#030712] flex flex-col items-center justify-center transition-opacity duration-1000">
+    <div class="relative">
+        <div class="w-24 h-24 rounded-full border-t-4 border-b-4 border-blue-500 animate-spin"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+            <div class="w-12 h-12 rounded-full bg-blue-500/20 animate-pulse"></div>
+        </div>
+    </div>
+    <div class="mt-8 text-center space-y-2">
+        <h2 class="text-2xl font-bold premium-gradient-text animate-pulse">Waking up the AI...</h2>
+        <p class="text-gray-500 text-sm font-mono tracking-widest uppercase">Initializing Neural Networks</p>
+    </div>
+</div>
+
+<script>
+    window.addEventListener('load', () => {
+        const loader = document.getElementById('loader-overlay');
+        loader.style.opacity = '0';
+        setTimeout(() => {
+            loader.style.display = 'none';
+        }, 1000);
+    });
+</script>
+
 <div class="space-y-24">
     <!-- Hero Section -->
     <section class="text-center space-y-8 py-12">

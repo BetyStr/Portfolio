@@ -1,11 +1,11 @@
 import os
-from typing import Annotated
+from typing import Annotated, Any
 
-import google.generativeai as genai
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from google import genai
 from sentence_transformers import SentenceTransformer, util
 from supabase import Client, create_client
 
@@ -16,14 +16,16 @@ THREAT_LOW = 10
 THREAT_CRITICAL = 85
 SIMILARITY_HIGH = 0.7
 SIMILARITY_LOW = 0.3
+GEMINI_MODEL = 'gemini-1.5-flash'
+TARGET_WORD = 'ocean'
+
+# Lazy-loaded globals
+_model: SentenceTransformer | None = None
+_target_emb: Any = None
 
 # Init Gemini (Requires GOOGLE_API_KEY in .env)
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    llm = genai.GenerativeModel('gemini-1.5-flash')
-else:
-    llm = None
+ai_client = genai.Client(api_key=GOOGLE_API_KEY) if GOOGLE_API_KEY else None
 
 # Mount static files (CSS, JS, Arcade games)
 app.mount('/static', StaticFiles(directory='static'), name='static')
@@ -36,10 +38,22 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
-# Load Semantic Model
-model = SentenceTransformer('all-MiniLM-L6-v2')
-target_word = 'ocean'
-target_emb = model.encode(target_word)
+
+def get_model() -> SentenceTransformer:
+    """Lazy-load the SentenceTransformer model."""
+    global _model  # noqa: PLW0603
+    if _model is None:
+        _model = SentenceTransformer('all-MiniLM-L6-v2')
+    return _model
+
+
+def get_target_emb() -> Any:
+    """Lazy-load the target word embedding."""
+    global _target_emb  # noqa: PLW0603
+    if _target_emb is None:
+        m = get_model()
+        _target_emb = m.encode(TARGET_WORD)
+    return _target_emb
 
 
 @app.get('/', response_class=HTMLResponse)
@@ -70,10 +84,11 @@ async def handle_jailbreak(_request: Request, prompt: Annotated[str, Form()]) ->
         bubble_class = 'bg-red-900/50 border-red-500 text-red-200'
     else:
         # 2. LLM Call
-        if llm:
+        if ai_client:
             try:
-                response = llm.generate_content(
-                    f'You are a secure bank vault. A user says: {prompt}. Respond stay in character.'
+                response = ai_client.models.generate_content(
+                    model=GEMINI_MODEL,
+                    contents=f'You are a secure bank vault. A user says: {prompt}. Respond stay in character.',
                 )
                 ai_response = response.text
             except Exception as e:
@@ -108,11 +123,12 @@ async def handle_jailbreak(_request: Request, prompt: Annotated[str, Form()]) ->
 
 @app.post('/api/ask-cv', response_class=HTMLResponse)
 async def ask_cv(_request: Request, question: Annotated[str, Form()]) -> str:
-    if not supabase or not llm:
+    if not supabase or not ai_client:
         return "<div class='p-4 bg-red-500/20 text-red-400 rounded-xl'>Supabase or Gemini not configured.</div>"
 
-    # 1. Embed the question
-    query_vector = model.encode(question).tolist()
+    # 1. Embed the question (Lazy Loading)
+    m = get_model()
+    query_vector = m.encode(question).tolist()
 
     # 2. Query Supabase for context
     try:
@@ -129,7 +145,7 @@ async def ask_cv(_request: Request, question: Annotated[str, Form()]) -> str:
         f"Using this context: {context}. Answer the user's question about Alzbeta's CV: {question}. "
         'Keep it professional and concise.'
     )
-    ai_answer = llm.generate_content(llm_prompt).text
+    ai_answer = ai_client.models.generate_content(model=GEMINI_MODEL, contents=llm_prompt).text
 
     return f"""
     <div class='p-6 glass rounded-2xl border-l-4 border-blue-500 animate-in fade-in'>
@@ -141,7 +157,9 @@ async def ask_cv(_request: Request, question: Annotated[str, Form()]) -> str:
 
 @app.post('/api/semantic', response_class=HTMLResponse)
 async def check_semantic(_request: Request, guess: Annotated[str, Form()]) -> str:
-    guess_emb = model.encode(guess)
+    m = get_model()
+    target_emb = get_target_emb()
+    guess_emb = m.encode(guess)
     score = util.cos_sim(target_emb, guess_emb).item()
 
     # Format score and return HTML progress bar or text
