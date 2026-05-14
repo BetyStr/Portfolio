@@ -1,0 +1,42 @@
+[project]
+name = "web"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.14"
+dependencies = []
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ['src', 'server', 'dist', 'node_modules', 'public', 'data']
+
+[tool.ruff.format]
+quote-style = 'single'
+indent-style = 'space'
+
+[tool.ruff.lint]
+flake8-quotes.inline-quotes = 'single'
+select = ['ALL']
+ignore = [
+    'ERA001',
+    'TD',
+    'TRY002',
+    'FIX',
+    'ANN002',
+    'ANN003',
+    'ANN401',
+    'D',
+    'G004',
+    'EM',
+    'BLE001',
+    'PGH003',
+    'SLF001',
+    'TRY003',
+    'COM812',
+]
+
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+plugins = ['pydantic.mypy']
+files = ['app/src']
