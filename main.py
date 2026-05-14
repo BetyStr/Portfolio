@@ -186,7 +186,10 @@ async def arcade_page(request: Request) -> HTMLResponse:
 
 @app.post('/api/scores')
 async def save_score(
-    _game: Annotated[str, Form()], _score: Annotated[int, Form()], _player: Annotated[str, Form()]
+    game: Annotated[str, Form()], score: Annotated[int, Form()], player: Annotated[str, Form()]
 ) -> str:
+    """Save score endpoint (logic currently commented out)."""
+    # Unused arguments for now, but Pydantic forbids leading underscores.
+    _ = (game, score, player)  # Reference them to satisfy Ruff if needed
     # supabase.table("arcade_scores").insert({"game": game, "score": score, "player": player}).execute()
     return 'Score saved!'
